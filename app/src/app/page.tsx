@@ -1,11 +1,10 @@
+// Landing page for TravelZ. Provides a marketing hero, search form, and links to the 18+ hotel finder.
 'use client';
-import {useRouter} from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import React, { use, useState } from "react";
-import { MockProvider } from "@/lib/providers/mock"; // <-- your mock file
-import { Hotel } from "@/types";
-import { userAgent } from 'next/server';
-
+import React, { useState } from 'react';
+import { MockProvider } from '@/lib/providers/mock';
+import { Hotel } from '@/types';
 
 const LandingPage: React.FC = () => {
   const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -15,14 +14,15 @@ const LandingPage: React.FC = () => {
   async function handleSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    // Mock location (Sacramento coords)
+    // For this demo, search near Sacramento coordinates. You could wire this up to a real provider.
     const lat = 38.58;
     const lng = -121.49;
-    setLoading(false);
-
-    const results = await MockProvider.searchNearby({ lat, lng, radiusKm: 30 });
-    setHotels(results);
-    setLoading(false);
+    try {
+      const results = await MockProvider.searchNearby({ lat, lng, radiusKm: 30 });
+      setHotels(results);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -30,12 +30,41 @@ const LandingPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white text-gray-800 shadow-md w-full">
         <nav className="flex justify-between items-center max-w-screen-2xl mx-auto px-6 py-4">
-          <div className="text-2xl font-semibold text-blue-600">Hotel Lens</div>
+          <div className="text-2xl font-semibold text-blue-600">TravelZ</div>
           <ul className="hidden md:flex gap-8 text-blue-600 font-medium">
-            <li><Link href="#home" className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full">Home</Link></li>
-            <li><Link href="#hotels" className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full">Hotels</Link></li>
-            <li><Link href="#about" className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full">About</Link></li>
-            <li><Link href="#contact" className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full">Contact</Link></li>
+            <li>
+              <Link
+                href="#home"
+                className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full"
+              >
+                Home
+              </Link>
+            </li>
+            <li>
+              {/* Link to the 18+ Hotel Finder route */}
+              <Link
+                href="/hotel-finder"
+                className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full"
+              >
+                Hotels
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="#about"
+                className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full"
+              >
+                About
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="#contact"
+                className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full"
+              >
+                Contact
+              </Link>
+            </li>
           </ul>
         </nav>
       </header>
@@ -88,11 +117,12 @@ const LandingPage: React.FC = () => {
                 <option value="3">3</option>
                 <option value="4">4</option>
               </select>
-                <button
-                  type="submit"
-                  className="w-full py-4 bg-blue-600 text-white rounded-md font-semibold uppercase tracking-wide hover:bg-blue-700 transform hover:-translate-y-0.5 shadow-md transition">
-                  Search Available Hotels
-                </button>
+              <button
+                type="submit"
+                className="w-full py-4 bg-blue-600 text-white rounded-md font-semibold uppercase tracking-wide hover:bg-blue-700 transform hover:-translate-y-0.5 shadow-md transition"
+              >
+                Search Available Hotels
+              </button>
             </form>
           </div>
         </section>
@@ -100,25 +130,29 @@ const LandingPage: React.FC = () => {
         {/* Results */}
         <section id="hotels" className="py-12 px-6 max-w-6xl mx-auto">
           <h2 className="text-3xl font-light text-center mb-8">Available Hotels</h2>
-          {loading && <p className="text-center">Loading...</p>}
+          {loading && <p className="text-center">Loading…</p>}
           <div className="grid md:grid-cols-3 gap-8">
             {hotels.map((hotel) => (
               <div
                 key={hotel.id}
                 className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition"
               >
-                <img
-                  src={hotel.thumbnailUrl}
-                  alt={hotel.name}
-                  className="w-full h-48 object-cover"
-                />
+                {hotel.thumbnailUrl && (
+                  <img
+                    src={hotel.thumbnailUrl}
+                    alt={hotel.name}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
                 <div className="p-6 text-left">
                   <h3 className="text-xl font-semibold mb-2">{hotel.name}</h3>
-                  <p className="text-gray-600">{hotel.address}</p>
-                  <p className="mt-2">⭐ {hotel.rating}</p>
-                  <p className="font-semibold mt-2 text-blue-600">${hotel.price}</p>
+                  {hotel.address && <p className="text-gray-600">{hotel.address}</p>}
+                  {hotel.rating !== undefined && <p className="mt-2">⭐ {hotel.rating}</p>}
+                  {hotel.price !== undefined && (
+                    <p className="font-semibold mt-2 text-blue-600">${hotel.price}</p>
+                  )}
                   <p className="text-sm text-gray-500 mt-2">
-                    {hotel.policyText ?? "No policy info"}
+                    {hotel.policyText ?? 'No policy info'}
                   </p>
                 </div>
               </div>
@@ -129,7 +163,7 @@ const LandingPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="bg-gray-800 text-white text-center py-10 border-t border-gray-600 text-sm">
-        © {new Date().getFullYear()} Hotel Lens. All rights reserved.
+        © {new Date().getFullYear()} TravelZ. All rights reserved.
       </footer>
     </div>
   );

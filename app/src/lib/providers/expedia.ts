@@ -2,7 +2,8 @@ import { Hotel } from '@/types';
 import { HotelProvider, parseMinAgeFromText } from './base';
 import { EXPEDIA } from '@/lib/config';
 import { haversineKm } from '@/lib/geo';
-import { searchExpediaByCoords, cachedScrapePolicy } from '@/lib/scraper';
+import { searchExpediaByCoords, cachedScrapePolicy, scrapeImageUrlsFromUrl } from '@/lib/scraper';
+import { pLimit } from '@/lib/util/pLimit';
 import { SCRAPING_ENABLED, SCRAPING_PROVIDER_OVERRIDES } from '@/lib/config';
 
 
@@ -17,25 +18,40 @@ export const ExpediaProvider: HotelProvider = {
     if (!providerScrapingEnabled) return [];
 
     const props = await searchExpediaByCoords(lat, lng, radiusKm, limit);
-        const hotels: Hotel[] = await Promise.all(props.map(async p => {
-            const policyText = p.url ? await cachedScrapePolicy(p.url) : null;
-            const parsedAge = parseMinAgeFromText(policyText || undefined);
-            return {
-                id: p.id,
-                name: p.name,
-                lat: p.lat ?? lat,
-                lng: p.lng ?? lng,
-                address: p.address,
-                rating: undefined,
-                price: undefined,
-                url: p.url,
-                distanceKm: haversineKm({ lat, lng }, { lat: p.lat ?? lat, lng: p.lng ?? lng }),
-                minCheckInAge: parsedAge,
-                policyText: policyText ?? null,
-                confidence: parsedAge != null ? 'parsed' : 'unknown',
-                source: 'expedia'
-            };
-        }));
+        // Limit concurrency to avoid overwhelming the network and speed up render times.
+        const concurrency = parseInt(process.env.SCRAPER_CONCURRENCY || '4', 10);
+        const limiter = pLimit(Math.max(1, concurrency));
+        const hotels: Hotel[] = await Promise.all(
+            props.map(p => limiter(async () => {
+                const policyText = p.url ? await cachedScrapePolicy(p.url) : null;
+                const parsedAge = parseMinAgeFromText(policyText || undefined);
+                let images: string[] = [];
+                if (p.url) {
+                    try {
+                        images = await scrapeImageUrlsFromUrl(p.url);
+                    } catch {
+                        images = [];
+                    }
+                }
+                return {
+                    id: p.id,
+                    name: p.name,
+                    lat: p.lat ?? lat,
+                    lng: p.lng ?? lng,
+                    address: p.address,
+                    rating: undefined,
+                    price: undefined,
+                    url: p.url,
+                    distanceKm: haversineKm({ lat, lng }, { lat: p.lat ?? lat, lng: p.lng ?? lng }),
+                    minCheckInAge: parsedAge,
+                    policyText: policyText ?? null,
+                    confidence: parsedAge != null ? 'parsed' : 'unknown',
+                    source: 'expedia',
+                    thumbnailUrl: images.length > 0 ? images[0] : undefined,
+                    photos: images
+                };
+            }))
+        );
 
         return hotels
             .filter(h => h.distanceKm! <= radiusKm)

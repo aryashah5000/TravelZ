@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 
 
 export const metadata: Metadata = {
-  title: '18+ Hotel Finder',
-  description: 'Find hotels that allow 18+ check-in near you.'
+  title: 'TravelZ',
+  description: 'Discover hotels around the world and find those with 18+ check-in policies.'
 };
 
 
