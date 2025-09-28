@@ -1,6 +1,6 @@
-# 🧳 TravelZ
+# TravelZ
 
-##Everything travel from GenZ
+## Everything travel from GenZ
 
 Welcome to TravelZ, the ultimate travel hub built for Gen Z explorers. Tired of seeing "21+ Check-In Only" and endless planning headaches? We get it. TravelZ is your key to unlocking the world, designed specifically for 18-20 year old travelers. We handle the annoying details so you can focus on making memories.
 
