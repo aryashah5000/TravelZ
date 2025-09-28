@@ -28,9 +28,17 @@ export async function fetchHtml(url: string): Promise<string | null> {
     try {
         if (!_fetch) return null;
         const fn = _fetch as unknown as (input: string, init?: any) => Promise<any>;
-        // small timeout to avoid hanging requests
+        // small timeout to avoid hanging requests. Use env SCRAPER_TIMEOUT_MS if provided.
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
-        const timeout = controller ? setTimeout(() => controller.abort(), 10_000) : undefined;
+        let timeoutMs = 10_000;
+        try {
+            const envVal = process.env.SCRAPER_TIMEOUT_MS;
+            if (envVal) {
+                const parsed = parseInt(envVal, 10);
+                if (!Number.isNaN(parsed) && parsed > 0) timeoutMs = parsed;
+            }
+        } catch { /* ignore parse errors */ }
+        const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) hotel-lens-scraper/1.0',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -101,33 +109,47 @@ export async function fetchHtml(url: string): Promise<string | null> {
  * existing `parseMinAgeFromText` helper.
  */
 export function extractPolicyTextFromHtml(html: string): string | null {
+    /**
+     * Attempt to extract a snippet of text describing the property's check‑in policies.
+     *
+     * Booking and Expedia present their policies in a variety of locations (sections,
+     * divs, paragraphs, list items) and with different casing ("Check-in", "check in",
+     * "Policies", etc.). The previous implementation used Cheerio's :contains selector
+     * with hard‑coded, case‑sensitive strings, which missed many legitimate matches.
+     *
+     * This new implementation iterates through several common tags and performs a
+     * case‑insensitive text search for "policy" or "check‑in" on their contents. It
+     * returns the first reasonably long match. If nothing is found, it falls back to
+     * truncating the full body text. Errors are swallowed and result in a null
+     * return value.
+     */
     try {
         const $ = cheerio.load(html);
-        // common selectors where policy/check-in info may appear
-        const selectors = [
-            'section:contains("Policy")',
-            'section:contains("Check-in")',
-            'div:contains("Policy")',
-            'div:contains("Check-in")',
-            'p:contains("check in")',
-            'p:contains("check-in")',
-            'li:contains("check in")',
-            'li:contains("check-in")'
-        ];
-
-        for (const sel of selectors) {
-            const el = $(sel).first();
-            if (el && el.text()) {
-                const txt = el.text().trim();
-                if (txt.length > 10) return txt;
+        const candidates: string[] = [];
+        // tags to inspect for policy text. We include span and li to catch edge cases.
+        const tags = ['section', 'div', 'p', 'li', 'span'];
+        tags.forEach(tag => {
+            $(tag).each((_: number, el: any) => {
+                const text = $(el).text().replace(/\s+/g, ' ').trim();
+                if (!text) return;
+                // Check for the words "policy" or "check in" / "check-in" in a case‑insensitive manner
+                if (/policy/i.test(text) || /check\s*-?\s*in/i.test(text)) {
+                    candidates.push(text);
+                }
+            });
+        });
+        for (const c of candidates) {
+            // require a minimum length to avoid spurious matches on navigation items
+            if (c.length > 10) {
+                return c;
             }
         }
-
-        // fallback: return full body text truncated
+        // fallback: return the first 200 chars of the full body text to allow the caller
+        // to attempt regex extraction on a broader context. Normalize whitespace first.
         const body = $('body').text().replace(/\s+/g, ' ').trim();
         if (body.length > 50) return body.slice(0, 200);
         return null;
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -204,13 +226,13 @@ export function extractImageUrlsFromHtml(html: string): string[] {
         const $ = cheerio.load(html);
         const urls: string[] = [];
         // Gather Open Graph or Twitter card images first
-        $('meta[property="og:image"], meta[property="og:image:secure_url"], meta[name="twitter:image"]').each((_, el: any) => {
+        $('meta[property="og:image"], meta[property="og:image:secure_url"], meta[name="twitter:image"]').each((_: number, el: any) => {
             const url = $(el).attr('content');
             if (url && !urls.includes(url)) urls.push(url);
         });
         // Fall back to first image on the page if no meta images found
         if (urls.length === 0) {
-            $('img').each((_, el: any) => {
+            $('img').each((_: number, el: any) => {
                 const attribs = el.attribs || {};
                 const src = attribs['src'] || attribs['data-src'] || attribs['data-lazy-src'] || attribs['data-lazy'] || attribs['data-lazy-img'];
                 if (src) {
@@ -232,9 +254,30 @@ export function extractImageUrlsFromHtml(html: string): string[] {
  * needed. Relative URLs are returned as-is.
  */
 export async function scrapeImageUrlsFromUrl(url: string): Promise<string[]> {
+    // Optionally disable image scraping via env flags. If IMAGE_SCRAPE_ENABLED or NEXT_PUBLIC_IMAGE_SCRAPE_ENABLED
+    // is explicitly set to 'false' (case-insensitive), skip scraping and return an empty array. This allows
+    // developers to turn off image scraping in resource‑constrained or offline environments.
+    try {
+        const flag = process.env.IMAGE_SCRAPE_ENABLED || process.env.NEXT_PUBLIC_IMAGE_SCRAPE_ENABLED;
+        if (typeof flag === 'string' && flag.toLowerCase() === 'false') {
+            return [];
+        }
+    } catch { /* ignore */ }
     const html = await fetchHtml(url);
     if (!html) return [];
-    return extractImageUrlsFromHtml(html);
+    const rawUrls = extractImageUrlsFromHtml(html);
+    // Convert any relative URLs to absolute based on the page URL. Some providers
+    // return images like "/images/foo.jpg" which will break when rendered in the
+    // client. Using the URL constructor ensures correct resolution even when the
+    // base URL contains query parameters or hashes. If resolution fails (e.g. the
+    // URL is malformed), fall back to returning the raw string.
+    return rawUrls.map(u => {
+        try {
+            return new URL(u, url).toString();
+        } catch {
+            return u;
+        }
+    });
 }
 
 // --- Domain-specific search scrapers -------------------------------------------------
@@ -319,6 +362,33 @@ export async function searchBookingByCoords(lat: number, lng: number, radiusKm =
                 } catch (e) { /* ignore */ }
             }
 
+            const id = full;
+            props.push({ id, name, lat: plat, lng: plng, url: full });
+        } catch (e) { /* ignore */ }
+    });
+
+    // Additional heuristics: Booking's markup often uses data-testid on title links. Attempt to capture these
+    // links even if they don't include "/hotel/" in the href. We merge with the above results.
+    $('a[data-testid="title-link"], a[data-testid="title"], a[data-test-id="title-link"]').each((i: number, el: CheerioElement) => {
+        try {
+            const href = $(el).attr('href');
+            if (!href) return;
+            const full = absoluteUrl(url, href.split('?')[0]);
+            // Skip if we've already captured this link
+            if (props.find(p => p.id === full)) return;
+            const name = $(el).text().trim() || $(el).attr('title') || '';
+            if (!name) return;
+            // Attempt to extract coords from parent attributes, but allow null
+            const parent = $(el).closest('[data-coords], [data-latitude], [data-lat]');
+            let plat: number | null = null; let plng: number | null = null;
+            if (parent && parent.length) {
+                const latAttr = parent.attr('data-lat') || parent.attr('data-latitude') || parent.attr('data-coords-lat');
+                const lngAttr = parent.attr('data-lng') || parent.attr('data-longitude') || parent.attr('data-coords-lng');
+                if (latAttr && lngAttr) {
+                    plat = parseFloat(latAttr);
+                    plng = parseFloat(lngAttr);
+                }
+            }
             const id = full;
             props.push({ id, name, lat: plat, lng: plng, url: full });
         } catch (e) { /* ignore */ }
