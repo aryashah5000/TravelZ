@@ -40,7 +40,7 @@ export default function Page() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">TravelZ Hotel Finder</h1>
+        <h1 className="text-2xl font-bold">18+ Hotel Finder</h1>
         <span className="text-sm text-gray-600">
           {meta ? `Source: ${meta.provider} • ${new Date(meta.fetchedAt).toLocaleString()}` : ''}
         </span>
