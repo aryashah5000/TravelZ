@@ -1,68 +1,21 @@
 # 🧳 TravelZ
 
-TravelZ is a web application that helps **18–20 year olds find bookable hotels in the United States that allow 18+ check-ins**.
+##Everything travel from GenZ
 
-## 🚨 The Problem
+Welcome to TravelZ, the ultimate travel hub built for Gen Z explorers. Tired of seeing "21+ Check-In Only" and endless planning headaches? We get it. TravelZ is your key to unlocking the world, designed specifically for 18-20 year old travelers. We handle the annoying details so you can focus on making memories.
 
-Most major hotel search platforms (e.g., Booking.com, Expedia, Hotels.com) do **not** provide a filter by check-in age. Instead, they typically default to showing all hotels regardless of policy. This creates a major obstacle for young travelers because:
+What We Do
 
-- Many hotels in the US require **21+ to check in**.
-- Travelers aged **18–20 must call hotels individually** to confirm whether they will be allowed to stay.
-- This process is frustrating, time-consuming, and often unreliable.
+🏨 18+ Hotel Finder: Our core feature. Stop wasting time. We find and verify hotels, apartments, and hostels that welcome you with open arms. Book your stay with confidence, knowing your age isn't a roadblock.
 
-## ✅ The Solution
+🗺️ Vibe-Checked Itineraries: Forget generic tourist traps. Whether you're into hidden cafes, epic nightlife, street art, or scenic hikes, our curated itineraries are designed for your interests. Discover the spots that are actually trending.
 
-**TravelZ** solves this problem by:
+🎉 Live Like a Local: Tap into the pulse of the city. We show you what’s happening right now—from concerts and pop-up markets to can't-miss events, all vetted for your age group.
 
-- Searching **only hotels that explicitly allow 18+ check-ins**.
-- Providing **instant access** to bookable options without needing to call hotels.
-- Empowering young travelers with a **clear, trustworthy, and easy-to-use** platform.
+Coming Soon to TravelZ!
 
-With TravelZ, an 18-year-old can confidently book hotels knowing they won’t be turned away at check-in.
+🤝 TravelZ Connect: Want to meet other travelers? Our upcoming match function will connect you with people heading to the same city on the same dates with similar interests. Find your concert buddy or museum-hopping crew safely and easily.
 
-## ✨ Features
+✈️ Flight & Ride Hub: Soon, you'll be able to book the cheapest flights and find the smartest ways to get around your destination—from public transport passes to scooter rentals—all in one place.
 
-- 🔍 Hotel search by destination and date.
-- 🏨 Results limited to hotels with **18+ check-in policies**.
-- 📱 Simple, modern, and mobile-friendly design.
-- 🚀 Fast and reliable booking experience.
-
-## 🛠️ Tech Stack
-
-- **Frontend:** HTML, CSS (Tailwind), JavaScript /
-- **Backend:** Node.js, JSON
-- **APIs:** Hotel search APIs (with filtering for 18+ check-in policies)
-
-## 📌 Use Case Example
-
-> Alex is 19 and planning a trip to Miami with friends. On Booking.com, Alex sees dozens of hotels but has no idea which ones actually allow 18+ check-ins.
->
-> With **TravelZ**, Alex searches Miami → sees only hotels confirmed to allow 18+ check-ins → books with confidence in minutes.
-
-## 🚧 Current Status
-
-TravelZ is under active development. The team is currently:
-
-- 🧹 Refining the user interface.
-- 📊 Expanding coverage to more destinations.
-
-## 💡 Future Plans
-
-- Add user reviews of hotel age policies.
-- Expand internationally beyond the US.
-- Partner directly with hotels for guaranteed 18+ bookings.
-
----
-
-### 👨‍💻 Contributors
-
-- Arya Shah
-- Juan Salas
-- Sarveshwar Sankar
-- Vihaan Dhaka
-
----
-
-## 📜 License
-
-Coming soon...
+TravelZ is more than an app; it's a movement. Your generation's passport to freedom. Sign up and start planning your next adventure!
