@@ -49,6 +49,15 @@ const LandingPage: React.FC = () => {
                 Hotels
               </Link>
             </li>
+            {/* Link to the travel itinerary builder */}
+            <li>
+              <Link
+                href="/itinerary"
+                className="hover:text-blue-800 relative after:block after:h-0.5 after:w-0 after:bg-blue-700 after:transition-all hover:after:w-full"
+              >
+                Itinerary
+              </Link>
+            </li>
             <li>
               <Link
                 href="#about"
