@@ -1,2 +1,0 @@
-# TravelZ
-Hackathon Project
