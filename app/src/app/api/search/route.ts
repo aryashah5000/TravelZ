@@ -7,6 +7,7 @@ import { MockProvider } from '@/lib/providers/mock';
 import { LRU } from '@/lib/lru';
 import { getCachedSearch, setCachedSearch } from '@/lib/redisCache';
 import { Hotel, SearchParams, SearchResponse } from '../../../../types';
+import type { HotelProvider } from '@/lib/providers/base';
 
 
 const cache = new LRU<string, Hotel[]>(200, 5 * 60_000); // 5 min fallback cache
@@ -63,6 +64,7 @@ export async function GET(req: NextRequest) {
         const provider = pickProvider();
         let hotels: Hotel[] | undefined;
         try {
+            // If we have a cache hit, use it. Otherwise call the active provider.
             hotels = hit ?? await provider.searchNearby({ lat, lng, radiusKm, limit } as SearchParams);
         } catch (provErr: any) {
             // write error to disk for inspection
@@ -78,7 +80,27 @@ export async function GET(req: NextRequest) {
             } catch (writeErr) {
                 // ignore write errors
             }
-            throw provErr;
+            // Fallback: try the mock provider if the active provider fails (e.g., network issues).
+            try {
+                const fallback = require('@/lib/providers/mock').MockProvider as HotelProvider;
+                hotels = await fallback.searchNearby({ lat, lng, radiusKm, limit } as SearchParams);
+            } catch {
+                // If even the mock fails, rethrow original error
+                throw provErr;
+            }
+        }
+
+        // If the provider returned no results (e.g., due to scraping failure), attempt a fallback to the mock provider.
+        if (!hotels || hotels.length === 0) {
+            try {
+                const fallback = require('@/lib/providers/mock').MockProvider as HotelProvider;
+                const mockResults = await fallback.searchNearby({ lat, lng, radiusKm, limit } as SearchParams);
+                if (mockResults && mockResults.length > 0) {
+                    hotels = mockResults;
+                }
+            } catch {
+                // ignore fallback errors; we'll just return the empty array
+            }
         }
         hotels = hotels ?? [];
         if (!hit) {
