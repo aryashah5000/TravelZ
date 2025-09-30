@@ -67,7 +67,7 @@ export default function Page() {
         </div>
       )}
       <section className="space-y-6">
-        <h2 className="text-lg font-semibold">Eligible (≤ 18)</h2>
+        <h2 className="text-lg font-semibold">Eligible (≥ 18)</h2>
         {eligible.length === 0 && <p className="text-sm text-gray-600">No matches yet in this area.</p>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {eligible.map((h) => (
@@ -89,7 +89,7 @@ export default function Page() {
       )}
 
       <section className="mt-10 space-y-6">
-        <h2 className="text-lg font-semibold">Not eligible ({'>'} 18)</h2>
+        <h2 className="text-lg font-semibold">Not eligible ({'<'} 18)</h2>
         {notEligible.length === 0 && <p className="text-sm text-gray-600">None.</p>}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {notEligible.map((h) => (
